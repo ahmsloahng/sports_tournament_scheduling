@@ -119,24 +119,25 @@ for team in team_ground:
                         for match in round_match[r]]) <= 2 #Away
 
 ''' 6) First match: MI vs DC'''
-model += var_match['MI','DC','Mumbai',0,0] == 1
+#model += var_match['MI','DC','Mumbai',0,0] == 1
 
 ''' 7) If a team is playing 
         1) Home game i_th round, Away game (i+1)_th round
         2) Away game i_th round, Home game (i+1)_th round
         3) Away game i_th round, Away game (i+1)_th round
-    Then the team is travelling from grond_1 to ground_2 in i_th round '''
-    
+    Then the team is travelling from grond_1 to ground_2 in i_th round 
+
+     Constraint is AND gate formulation '''   
 for team in team_ground:
     for round in range(total_rounds - 1):
         for opp_team in team_ground:
             if opp_team != team :
-                model += var_travel[team,team_ground[team],team_ground[opp_team],round] <= lpSum([var_match[team,team_1,team_ground[team],match,round] for team_1 in team_ground if team_1 != team for match in round_match[round]])
-                model += var_travel[team,team_ground[team],team_ground[opp_team],round] <= lpSum([var_match[opp_team,team,team_ground[opp_team],match_1,round+1] for match_1 in round_match[round+1]])
+                model += var_travel[team,team_ground[team],team_ground[opp_team],round] <= lpSum([var_match[team,team_1,team_ground[team],match,round] for team_1 in team_ground if team_1 != team for match in round_match[round]]) #playing home match in current round
+                model += var_travel[team,team_ground[team],team_ground[opp_team],round] <= lpSum([var_match[opp_team,team,team_ground[opp_team],match_1,round+1] for match_1 in round_match[round+1]]) #playing away match in next round
                 model += var_travel[team,team_ground[team],team_ground[opp_team],round] >= lpSum([var_match[team,team_1,team_ground[team],match,round] for team_1 in team_ground if team_1 != team for match in round_match[round]]) + lpSum([var_match[opp_team,team,team_ground[opp_team],match_1,round+1] for match_1 in round_match[round+1]]) - 1
                 
-                model += var_travel[team,team_ground[opp_team],team_ground[team],round] <= lpSum([var_match[opp_team,team,team_ground[opp_team],match,round] for match in round_match[round]])
-                model += var_travel[team,team_ground[opp_team],team_ground[team],round] <= lpSum([var_match[team,team_1,team_ground[team],match_1,round+1] for team_1 in team_ground if team_1!= team for match_1 in round_match[round+1]])
+                model += var_travel[team,team_ground[opp_team],team_ground[team],round] <= lpSum([var_match[opp_team,team,team_ground[opp_team],match,round] for match in round_match[round]]) #playing away match in current round
+                model += var_travel[team,team_ground[opp_team],team_ground[team],round] <= lpSum([var_match[team,team_1,team_ground[team],match_1,round+1] for team_1 in team_ground if team_1!= team for match_1 in round_match[round+1]]) #playing home game in next round
                 model += var_travel[team,team_ground[opp_team],team_ground[team],round] >= lpSum([var_match[opp_team,team,team_ground[opp_team],match,round] for match in round_match[round]]) + lpSum([var_match[team,team_1,team_ground[team],match_1,round+1] for team_1 in team_ground if team_1 != team for match_1 in round_match[round+1]]) - 1
 
 for team in team_ground:
@@ -145,8 +146,8 @@ for team in team_ground:
             if away_team_1 != team :
                 for away_team_2 in team_ground:
                     if away_team_2 != team and away_team_2 != away_team_1 :
-                        model += var_travel[team,team_ground[away_team_1],team_ground[away_team_2],round] <= lpSum([var_match[away_team_1,team,team_ground[away_team_1],match,round] for match in round_match[round]])
-                        model += var_travel[team,team_ground[away_team_1],team_ground[away_team_2],round] <= lpSum([var_match[away_team_2,team,team_ground[away_team_2],match_1,round+1] for match_1 in round_match[round+1]])
+                        model += var_travel[team,team_ground[away_team_1],team_ground[away_team_2],round] <= lpSum([var_match[away_team_1,team,team_ground[away_team_1],match,round] for match in round_match[round]]) #playing away game in current round
+                        model += var_travel[team,team_ground[away_team_1],team_ground[away_team_2],round] <= lpSum([var_match[away_team_2,team,team_ground[away_team_2],match_1,round+1] for match_1 in round_match[round+1]]) #playing away game in next round
                         model += var_travel[team,team_ground[away_team_1],team_ground[away_team_2],round] >= lpSum([var_match[away_team_1,team,team_ground[away_team_1],match,round] for match in round_match[round]]) + lpSum([var_match[away_team_2,team,team_ground[away_team_2],match_1,round+1] for match_1 in round_match[round+1]]) - 1  
 
 '''OBJECTIVE'''
@@ -161,7 +162,7 @@ model += (lpSum([var_travel[team,ground_1,ground_2,round]*distance_matrix[ground
                    for match in round_match[0]]))
 
 ''' PRINITING THE LP FILE '''
-model.writeLP('ipl_scheduling.lp', writeSOS = 1, mip = 1)
+model.writeLP('ipl_scheduling_lp.lp', writeSOS = 1, mip = 1)
 
 ''' SOLVING THE MODEL AND PRINTING THE LOG '''
 model.solve(PULP_CBC_CMD(msg = 1, logPath = 'status.log'))
