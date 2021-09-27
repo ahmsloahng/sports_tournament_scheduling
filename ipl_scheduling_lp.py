@@ -127,7 +127,12 @@ for team in team_ground:
         3) Away game i_th round, Away game (i+1)_th round
     Then the team is travelling from grond_1 to ground_2 in i_th round 
 
-     Constraint is AND gate formulation '''   
+     Constraint is AND gate formulation
+     x_1, x_2, y -> binary
+     formulation: y <= x_1
+                  y <= x_2
+                  y >= x_1 + x_2 - 1 '''   
+                  
 for team in team_ground:
     for round in range(total_rounds - 1):
         for opp_team in team_ground:
