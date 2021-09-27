@@ -40,11 +40,20 @@ distance_matrix = {
                     'Chennai': {'Mohali':1990, 'Delhi':2180, 'Jaipur':2169, 'Kolkata':1659, 'Mumbai':1338, 'Hyderabad':629, 'Bengaluru':350}    
                  }
 
-''' 4) Rounds and match number in a given round '''
-round_match = {i:[j for j in range(i*4,i*4 + 4)] for i in range(14)}
+''' 5) Total no. of matches in a round robin league '''
+total_matches = int(len(team_ground)*(len(team_ground) - 1))
 
-''' 5) Match no and their respective rounds '''
-match_round = {i:i//4 for i in range(56)}
+''' 6) Total no. of rounds in a round robin league '''
+total_rounds = int(2*(len(team_ground) - 1))
+
+''' 7) No. of matches in a given round '''
+total_matches_in_round = int(len(team_ground)/2)
+
+''' 8) Rounds and match number in a given round '''
+round_match = {i:[j for j in range(i*total_matches_in_round,(i+1)*total_matches_in_round)] for i in range(total_rounds)}
+
+''' 9) Match no and their respective rounds '''
+match_round = {i:i//total_matches_in_round for i in range(total_matches)}
 
 
 '''VARIABLES'''
@@ -52,7 +61,7 @@ match_round = {i:i//4 for i in range(56)}
 var_match = LpVariable.dicts('match', ((home_team,away_team,team_ground[home_team],match,round) 
                                        for home_team in team_ground 
                                        for away_team in team_ground if home_team != away_team 
-                                       for round in range(14) 
+                                       for round in range(total_rounds) 
                                        for match in round_match[round]), 
                              cat = LpBinary)
 
@@ -61,7 +70,7 @@ var_travel = LpVariable.dicts('travel', ((team,ground_1,ground_2,round)
                                          for team in team_ground
                                          for ground_1 in grounds
                                          for ground_2 in grounds if ground_1 != ground_2
-                                         for round in range(13)),
+                                         for round in range(total_rounds - 1)),
                               cat = LpBinary)
 
 
@@ -71,17 +80,17 @@ for home_team in team_ground:
     for away_team in team_ground:
         if away_team != home_team:
             model += lpSum([var_match[home_team,away_team,team_ground[home_team],match,match_round[match]] 
-                            for match in range(56)]) == 1
+                            for match in range(total_matches)]) == 1
 
 ''' 2) In a given match day, only one match must happen '''
-for match in range(56):
+for match in range(total_matches):
     model += lpSum([var_match[home_team,away_team,team_ground[home_team],match,match_round[match]]
                     for home_team in team_ground
                     for away_team in team_ground if home_team != away_team]) == 1
 
 ''' 3) A team play one match in a round '''
 for team in team_ground:
-    for round in range(14):
+    for round in range(total_rounds):
         model += lpSum([(var_match[team,opp_team,team_ground[team],match,round]
                           + var_match[opp_team,team,team_ground[opp_team],match,round])
                         for opp_team in team_ground if opp_team != team 
@@ -89,7 +98,7 @@ for team in team_ground:
 
 ''' 4) A team cannot play in two consecutive match days '''
 for team in team_ground:
-    for match in range(55):
+    for match in range(total_matches - 1):
         model += lpSum([(var_match[team,opp_team,team_ground[team],match,match_round[match]]
                         + var_match[team,opp_team,team_ground[team],match+1,match_round[match+1]]
                         + var_match[opp_team,team,team_ground[opp_team],match,match_round[match]]
@@ -98,7 +107,7 @@ for team in team_ground:
 
 ''' 5) A team cannot play 3 consecutive home games and away games '''
 for team in team_ground:
-    for round in range(12):
+    for round in range(total_rounds - 2):
         model += lpSum([var_match[team,away_team,team_ground[team],match,r] 
                         for away_team in team_ground if away_team != team
                         for r in range(round,round+3)
@@ -110,7 +119,7 @@ for team in team_ground:
                         for match in round_match[r]]) <= 2 #Away
 
 ''' 6) First match: MI vs DC'''
-model += var_match['MI','DC','Mumbai',0,0] == 1
+#model += var_match['MI','DC','Mumbai',0,0] == 1
 
 ''' 7) If a team is playing 
         1) Home game i_th round, Away game (i+1)_th round
@@ -119,7 +128,7 @@ model += var_match['MI','DC','Mumbai',0,0] == 1
     Then the team is travelling from grond_1 to ground_2 in i_th round '''
     
 for team in team_ground:
-    for round in range(13):
+    for round in range(total_rounds - 1):
         for opp_team in team_ground:
             if opp_team != team :
                 model += var_travel[team,team_ground[team],team_ground[opp_team],round] <= lpSum([var_match[team,team_1,team_ground[team],match,round] for team_1 in team_ground if team_1 != team for match in round_match[round]])
@@ -131,7 +140,7 @@ for team in team_ground:
                 model += var_travel[team,team_ground[opp_team],team_ground[team],round] >= lpSum([var_match[opp_team,team,team_ground[opp_team],match,round] for match in round_match[round]]) + lpSum([var_match[team,team_1,team_ground[team],match_1,round+1] for team_1 in team_ground if team_1 != team for match_1 in round_match[round+1]]) - 1
 
 for team in team_ground:
-    for roun in range(13):
+    for roun in range(total_rounds - 1):
         for away_team_1 in team_ground:
             if away_team_1 != team :
                 for away_team_2 in team_ground:
@@ -141,11 +150,15 @@ for team in team_ground:
                         model += var_travel[team,team_ground[away_team_1],team_ground[away_team_2],round] >= lpSum([var_match[away_team_1,team,team_ground[away_team_1],match,round] for match in round_match[round]]) + lpSum([var_match[away_team_2,team,team_ground[away_team_2],match_1,round+1] for match_1 in round_match[round+1]]) - 1  
 
 '''OBJECTIVE'''
-model += lpSum([var_travel[team,ground_1,ground_2,round]*distance_matrix[ground_1][ground_2] 
+model += (lpSum([var_travel[team,ground_1,ground_2,round]*distance_matrix[ground_1][ground_2] 
                for ground_1 in grounds 
                for ground_2 in grounds if ground_1 != ground_2 
                for team in team_ground
-               for round in range(13)])
+               for round in range(total_rounds - 1)]) 
+          + lpSum([var_match[home_team,away_team,team_ground[home_team],match,0]*distance_matrix[team_ground[home_team]][team_ground[away_team]]
+                   for home_team in team_ground
+                   for away_team in team_ground if home_team != away_team
+                   for match in round_match[0]]))
 
 ''' PRINITING THE LP FILE '''
 model.writeLP('ipl_scheduling.lp', writeSOS = 1, mip = 1)
@@ -164,7 +177,7 @@ list_home_team = []
 list_away_team = []
 list_ground = []
 
-for round in range(14):
+for round in range(total_rounds):
     for match in round_match[round]:
         for home_team in team_ground:
             for away_team in team_ground:
