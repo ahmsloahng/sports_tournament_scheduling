@@ -119,7 +119,7 @@ for team in team_ground:
                         for match in round_match[r]]) <= 2 #Away
 
 ''' 6) First match: MI vs DC'''
-#model += var_match['MI','DC','Mumbai',0,0] == 1
+model += var_match['MI','DC','Mumbai',0,0] == 1
 
 ''' 7) If a team is playing 
         1) Home game i_th round, Away game (i+1)_th round
