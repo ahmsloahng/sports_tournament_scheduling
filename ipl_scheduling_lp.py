@@ -98,11 +98,11 @@ for team in team_ground:
 
 ''' 4) A team cannot play in two consecutive match days '''
 for team in team_ground:
-    for match in range(total_matches - 1):
-        model += lpSum([(var_match[team,opp_team,team_ground[team],match,match_round[match]]
-                        + var_match[team,opp_team,team_ground[team],match+1,match_round[match+1]]
-                        + var_match[opp_team,team,team_ground[opp_team],match,match_round[match]]
-                        + var_match[opp_team,team,team_ground[opp_team],match+1,match_round[match+1]])
+    for round in range(1,total_rounds):
+        model += lpSum([(var_match[team,opp_team,team_ground[team],(total_matches_in_round*round) - 1,round-1]
+                        + var_match[team,opp_team,team_ground[team],(total_matches_in_round*round),round]
+                        + var_match[opp_team,team,team_ground[opp_team],(total_matches_in_round*round) - 1,round-1]
+                        + var_match[opp_team,team,team_ground[opp_team],(total_matches_in_round*round),round])
                         for opp_team in team_ground if opp_team != team]) <= 1
 
 ''' 5) A team cannot play 3 consecutive home games and away games '''
@@ -119,7 +119,7 @@ for team in team_ground:
                         for match in round_match[r]]) <= 2 #Away
 
 ''' 6) First match: MI vs DC'''
-#model += var_match['MI','DC','Mumbai',0,0] == 1
+model += var_match['MI','DC','Mumbai',0,0] == 1
 
 ''' 7) If a team is playing 
         1) Home game i_th round, Away game (i+1)_th round
